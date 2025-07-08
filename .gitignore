@@ -1,0 +1,18 @@
+".vs/"
+BillsApp/obj/Release/
+BillsApp/obj/Debug/
+.vs
+appsettings.json
+/bin/
+/obj/
+.env
+
+# User-specific files
+*.user
+*.rsuser
+*.suo
+*.swp
+
+# Logs and temporary files
+*.log
+*.tmp

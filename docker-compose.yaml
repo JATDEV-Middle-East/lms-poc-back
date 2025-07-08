@@ -1,0 +1,35 @@
+# version: '3.8'
+
+services:
+  # Backend Service (.NET)
+  backend:
+    image: registry.digitalocean.com/jatdev-registry/lms-back:latest
+    container_name: lms-backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      #- ConnectionStrings__DefaultConnection=${ConnectionStrings}
+      # CORS settings (adjust origins to match your frontend URL)
+      #- ASPNETCORE_CORS__AllowedOrigins=${ALLOWED_ORIGINS}
+    ports:
+      - "7157:7157"
+    networks:
+      - lms-network
+
+
+  # Frontend Service (Angular)
+  frontend:
+    image: registry.digitalocean.com/jatdev-registry/lms-front:latest
+    container_name: lms-frontend
+    environment:
+      - API_BASE_URL=https://weave-splus.cloudjat.com/api
+    ports:
+      - "443:443"
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - lms-network
+
+networks:
+  lms-network:
+    driver: bridge
