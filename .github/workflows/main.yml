@@ -66,12 +66,12 @@ jobs:
     needs: [ build-docker-image ]
     steps:
     - uses: actions/checkout@v4
-    - name: Log in to DigitalOcean Container Registry
-      uses: docker/login-action@v2
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ secrets.DO_USERNAME }}
-        password: ${{ secrets.DO_TOKEN}}
+    # - name: Log in to DigitalOcean Container Registry
+    #   uses: docker/login-action@v2
+    #   with:
+    #     registry: ${{ env.REGISTRY }}
+    #     username: ${{ secrets.DO_USERNAME }}
+    #     password: ${{ secrets.DO_TOKEN}}
     - name: Extract Docker Metadata
       id: meta
       uses: docker/metadata-action@v4
