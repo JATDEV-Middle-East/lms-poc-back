@@ -29,30 +29,27 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
 
-  build-image:
-    name: Security Scan Report
+  build-docker-image:
+    name: Build Docker Image
     runs-on: ubuntu-latest
     needs: [ build-and-test ]
     steps:
     - uses: actions/checkout@v4
-    # - name: Log in to DigitalOcean Container Registry
-    #   uses: docker/login-action@v2
-    #   with:
-    #     registry: ${{ env.REGISTRY }}
-    #     username: ${{ secrets.DO_USERNAME }}
-    #     password: ${{ secrets.DO_TOKEN}}
-
-    - name: Extract Docker metadata
+    - name: Log in to DigitalOcean Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DO_USERNAME }}
+        password: ${{ secrets.DO_TOKEN}}
+    - name: Extract Docker Metadata
       id: meta
-      uses: docker/metadata-action@v4  # Action that generates Docker metadata
+      uses: docker/metadata-action@v4
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |  # Tag generation rules
-          type=sha  # Tag with git SHA
-          type=semver,pattern={{version}}  # Tag with version if available
-        #   type=ref,event=branch  # Tag with branch name
-
-    - name: Build and export Docker image
+        tags: |
+          type=sha
+          type=semver,pattern={{version}}
+    - name: Build Docker Image
       id: docker_build
       uses: docker/build-push-action@v4
       with:
@@ -60,19 +57,47 @@ jobs:
         push: false
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+    - name: Export Image ID
+      run: echo "IMAGE_ID=${{ steps.docker_build.outputs.imageid }}" >> $GITHUB_ENV
 
-    # Security scan with Trivy (vulnerability scanner)
-    - name: Scan image with Trivy
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    needs: [ build-docker-image ]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Log in to DigitalOcean Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DO_USERNAME }}
+        password: ${{ secrets.DO_TOKEN}}
+    - name: Extract Docker Metadata
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=sha
+          type=semver,pattern={{version}}
+    - name: Build Docker Image (for Scan)
+      id: docker_build
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: false
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+    - name: Scan Docker Image with Trivy
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: ${{ steps.docker_build.outputs.imageid }}
         format: 'table'
-        exit-code: '1'  # Fail the workflow if vulnerabilities found
-        ignore-unfixed: true  # Only report fixed vulnerabilities
-        vuln-type: 'os,library'  # Scan both OS and library vulnerabilities
-        severity: 'CRITICAL,HIGH'  # Only report critical and high severity issues
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
         output: trivy.txt
-
     - name: Publish Trivy Output to Summary
       run: |
         if [[ -s trivy.txt ]]; then
@@ -87,11 +112,31 @@ jobs:
         } >> $GITHUB_STEP_SUMMARY
         fi
 
-    # - name: Push to DigitalOcean Container Registry
-    #   if: github.event_name != 'pull_request'
-    #   uses: docker/build-push-action@v4
-    #   with:
-    #     context: .
-    #     push: true
-    #     tags: ${{ steps.meta.outputs.tags }}
-    #     labels: ${{ steps.meta.outputs.labels }}
+  # push-docker-image:
+  #   name: Push Docker Image to Registry
+  #   runs-on: ubuntu-latest
+  #   needs: [ security-scan ]
+  #   if: github.event_name != 'pull_request'
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   - name: Log in to DigitalOcean Container Registry
+  #     uses: docker/login-action@v2
+  #     with:
+  #       registry: ${{ env.REGISTRY }}
+  #       username: ${{ secrets.DO_USERNAME }}
+  #       password: ${{ secrets.DO_TOKEN}}
+  #   - name: Extract Docker Metadata
+  #     id: meta
+  #     uses: docker/metadata-action@v4
+  #     with:
+  #       images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+  #       tags: |
+  #         type=sha
+  #         type=semver,pattern={{version}}
+  #   - name: Push Docker Image
+  #     uses: docker/build-push-action@v4
+  #     with:
+  #       context: .
+  #       push: true
+  #       tags: ${{ steps.meta.outputs.tags }}
+  #       labels: ${{ steps.meta.outputs.labels }}
