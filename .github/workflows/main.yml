@@ -66,12 +66,12 @@ jobs:
     needs: [ build-docker-image ]
     steps:
     - uses: actions/checkout@v4
-    # - name: Log in to DigitalOcean Container Registry
-    #   uses: docker/login-action@v2
-    #   with:
-    #     registry: ${{ env.REGISTRY }}
-    #     username: ${{ secrets.DO_USERNAME }}
-    #     password: ${{ secrets.DO_TOKEN}}
+    - name: Log in to DigitalOcean Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DO_USERNAME }}
+        password: ${{ secrets.DO_TOKEN}}
     - name: Extract Docker Metadata
       id: meta
       uses: docker/metadata-action@v4
@@ -112,31 +112,31 @@ jobs:
         } >> $GITHUB_STEP_SUMMARY
         fi
 
-  # push-docker-image:
-  #   name: Push Docker Image to Registry
-  #   runs-on: ubuntu-latest
-  #   needs: [ security-scan ]
-  #   if: github.event_name != 'pull_request'
-  #   steps:
-  #   - uses: actions/checkout@v4
-  #   - name: Log in to DigitalOcean Container Registry
-  #     uses: docker/login-action@v2
-  #     with:
-  #       registry: ${{ env.REGISTRY }}
-  #       username: ${{ secrets.DO_USERNAME }}
-  #       password: ${{ secrets.DO_TOKEN}}
-  #   - name: Extract Docker Metadata
-  #     id: meta
-  #     uses: docker/metadata-action@v4
-  #     with:
-  #       images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-  #       tags: |
-  #         type=sha
-  #         type=semver,pattern={{version}}
-  #   - name: Push Docker Image
-  #     uses: docker/build-push-action@v4
-  #     with:
-  #       context: .
-  #       push: true
-  #       tags: ${{ steps.meta.outputs.tags }}
-  #       labels: ${{ steps.meta.outputs.labels }}
+  push-docker-image:
+    name: Push Docker Image to Registry
+    runs-on: ubuntu-latest
+    needs: [ security-scan ]
+    if: github.event_name != 'pull_request'
+    steps:
+    - uses: actions/checkout@v4
+    - name: Log in to DigitalOcean Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DO_USERNAME }}
+        password: ${{ secrets.DO_TOKEN}}
+    - name: Extract Docker Metadata
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=sha
+          type=semver,pattern={{version}}
+    - name: Push Docker Image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
