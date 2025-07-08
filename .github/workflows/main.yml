@@ -71,6 +71,21 @@ jobs:
         ignore-unfixed: true  # Only report fixed vulnerabilities
         vuln-type: 'os,library'  # Scan both OS and library vulnerabilities
         severity: 'CRITICAL,HIGH'  # Only report critical and high severity issues
+        output: trivy.txt
+
+    - name: Publish Trivy Output to Summary
+      run: |
+        if [[ -s trivy.txt ]]; then
+        {
+            echo "### Security Output"
+            echo "<details><summary>Click to expand</summary>"
+            echo ""
+            echo '```Scanning Results'
+            cat trivy.txt
+            echo '```'
+            echo "</details>"
+        } >> $GITHUB_STEP_SUMMARY
+        fi
 
     # - name: Push to DigitalOcean Container Registry
     #   if: github.event_name != 'pull_request'
